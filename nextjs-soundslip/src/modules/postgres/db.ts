@@ -1,13 +1,21 @@
-import { Pool } from 'pg';
+import { Client, Pool } from 'pg';
 
-const { PGHOST, PGDATABASE, PGUSER, PGPASSWORD, ENDPOINT_ID } = process.env;
+const connectionString: string | undefined = process.env.NEON_URL
 
-const connectionString = process.env.NEON_URL
+const pool = new Pool({connectionString});
 
-let conn: Pool | undefined;
-
-if (!conn){
-  conn = new Pool({connectionString});
+module.exports = {
+  query: (text: string, params: any[], callback: Function) => {
+    const start = Date.now()
+    return pool?.query(text, params, (err, res) => {
+      const duration = Date.now() - start
+      console.log('executed query', { text, duration, rows: res.rowCount })
+      callback(err, res)
+    })
+  },
+  getClient: (callback: Function) => {
+    pool?.connect((err, client, done) => {
+      callback(err, client, done)
+    })
+  },
 }
-
-export default conn;
