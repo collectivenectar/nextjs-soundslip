@@ -1,21 +1,14 @@
-import { Client, Pool } from 'pg';
+import { Client } from 'pg';
 
-const connectionString: string | undefined = process.env.NEON_URL
-
-const pool = new Pool({connectionString});
+const pgClient = new Client({
+  user: process.env.NEON_USER,
+  password: process.env.NEON_PASSWORD,
+  database: process.env.NEON_DB,
+  port: 5432,
+  host: process.env.NEON_HOST,
+  ssl: true
+});
 
 module.exports = {
-  query: (text: string, params: any[], callback: Function) => {
-    const start = Date.now()
-    return pool?.query(text, params, (err, res) => {
-      const duration = Date.now() - start
-      console.log('executed query', { text, duration, rows: res.rowCount })
-      callback(err, res)
-    })
-  },
-  getClient: (callback: Function) => {
-    pool?.connect((err, client, done) => {
-      callback(err, client, done)
-    })
-  },
+  client: pgClient
 }
