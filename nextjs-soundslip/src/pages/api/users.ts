@@ -1,24 +1,20 @@
-import { match } from 'assert';
 import type { NextApiRequest, NextApiResponse } from 'next';
 const { client } = require('../../modules/postgres/db');
 const format = require('pg-format');
-
-const rowNames = ["user_name", "first_name", "last_name", "password_hash", "member_since", "bio", "profile_url", "DEFAULT"]
 
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
   ) {
     const { method, body } = req;
-    console.log(method)
     switch (method) {
         case "POST":
             try{
                 const { user_name, first_name, last_name, password_hash, bio, profile_url } = body;
-                const queryString = `INSERT INTO users (user_name, first_name, last_name, password_hash, bio, profile_url) VALUES ($1, $2, $3, $4, $5, $6);`
+                const valuesArray = [user_name, first_name, last_name, password_hash, bio, profile_url]
+                const sql = format(`INSERT INTO users (%I, %I, %I, %I, %I, %I) VALUES (%L);`, 'user_name', 'first_name', 'last_name', 'password_hash', 'bio', 'profile_url', valuesArray)
                 client.connect()
-                const response = await client.query(queryString, [user_name, first_name, last_name, password_hash, bio, profile_url]);
-                console.log(response)
+                const response = await client.query(sql);
                 res.status(200).send(response?.rows);
             }catch(error: any){
                 return res.status(400).json({response: error.message});
@@ -27,9 +23,9 @@ export default async function handler(
         case "GET":
             try {
                 const { user_name } = body;
-                const queryString = `SELECT * FROM users WHERE user_name = $1`
+                const sql = format(`SELECT * FROM users WHERE %I = %L`, 'user_name', user_name)
                 client.connect()
-                const response = await client.query(queryString, [user_name]);
+                const response = await client.query(sql);
                 res.status(200).send(response?.rows);
             }catch(error: any){
                 return res.status(400).json({response: error.message})
@@ -38,16 +34,9 @@ export default async function handler(
         case "PATCH":
             try {
                 const { updateWhat, userId, updateValue } : { updateWhat: string; userId: number; updateValue: any } = body;
-                const patches : Object = {
-                    first_name: `UPDATE users SET first_name = $1 WHERE id = 10`,
-                    last_name: `UPDATE users SET last_name = $1 WHERE id = $2;`,
-                    password_hash: `UPDATE users SET password_hash = $1 WHERE id = $2;`,
-                    bio: `UPDATE users SET bio = $1 WHERE id = $2;`,
-                    profile_url: `UPDATE users SET profile_url = $1 WHERE id = $2;`,
-                }
-                const queryString : string = patches[updateWhat as keyof object];
+                let sql: string = format(`UPDATE users SET %I = %L WHERE %I = %L;`, updateWhat, updateValue, "id", userId);
                 client.connect()
-                const response = await client.query(queryString, [updateValue]);
+                const response = await client.query(sql);
                 res.status(200).send(response);
             }catch(error: any){
                 return res.status(400).json({response: error.message})
