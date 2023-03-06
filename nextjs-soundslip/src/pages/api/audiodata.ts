@@ -42,18 +42,25 @@ export default async function handler(
         case "PATCH":
             try {
                 const { updateWhat, audioId, updateValue } : { updateWhat: string; audioId: number; updateValue: any } = body;
-                let sql: string = format(`UPDATE audiodata SET %I = %L WHERE %I = %L;`, updateWhat, updateValue, "id", audioId);
-                client.connect();
-                const response = await client.query(sql);
-                res.status(200).send(response);
+                if(updateWhat === "upvotes" || updateWhat === "downvotes"){
+                    let sql: string = format(`UPDATE audiodata SET %1$I = %1$I + 1 WHERE %I = %L;`, updateWhat, "id", audioId);
+                    client.connect();
+                    const response = await client.query(sql)
+                    res.status(200).send(response)
+                }else{
+                    let sql: string = format(`UPDATE audiodata SET %I = %L WHERE %I = %L;`, updateWhat, updateValue, "id", audioId);
+                    client.connect();
+                    const response = await client.query(sql);
+                    res.status(200).send(response);
+                }
             }catch(error: any){
                 return res.status(400).json({response: error.message})
             }
             break;
         case "DELETE":
             try{
-                const { audioId } : { audioId: number } = body;
-                let sql: string = format(`DELETE FROM audiodata where %I = %L`, "id", audioId);
+                const { audioId, creator } : { audioId: number, creator: number } = body;
+                let sql: string = format(`DELETE FROM audiodata where %I = %L AND %I === $L`, "id", audioId, "creator", creator);
                 client.connect();
                 const response = await client.query(sql);
                 res.status(200).send(response)
